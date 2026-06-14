@@ -1721,18 +1721,21 @@ var TLINE=BH-72;                    // 이 선을 넘으면 펭귄에게 도달
 function initTyping(){
   bg={type:'typing',score:0,combo:0,lives:3,over:false,
       bricks:[],projectiles:[],particles:[],
-      descend:5,spawnEvery:7000,spawnTimer:0,ramp:0,shake:0};
-  for(var r=0;r<2;r++)spawnTypingRow(TPAD+r*TROWSTEP);
+      descend:4,spawnEvery:8500,spawnTimer:0,ramp:0,shake:0};
+  spawnTypingRow(TPAD);                          // 처음엔 딱 1줄만
   updateBrickHUD();
 }
 function spawnTypingRow(y){
-  var used={};
+  var used={},added=0;
+  // 초반엔 빈 칸이 많아(벽돌 적음) 시간이 갈수록 빽빽해짐
+  var emptyProb=Math.max(0.18,0.65-bg.ramp*0.012);
   for(var c=0;c<TCOLS;c++){
-    if(Math.random()<0.32)continue;               // 빈 칸 많게 → 벽돌 수 줄임
+    // 마지막 칸까지 하나도 안 나왔으면 강제로 1개 보장
+    if(Math.random()<emptyProb&&!(c===TCOLS-1&&added===0))continue;
     var word;var tries=0;
     do{word=BRICK_WORDS[Math.floor(Math.random()*BRICK_WORDS.length)];tries++;}
     while((used[word]||typingHasWord(word))&&tries<20);
-    used[word]=1;
+    used[word]=1;added++;
     bg.bricks.push({x:TPAD+c*(TBRICKW+TGAP),y:y,w:TBRICKW,h:TBRICKH,
       word:word,alive:true,targeted:false,color:BRICK_COLORS[Math.floor(Math.random()*BRICK_COLORS.length)]});
   }
@@ -1757,7 +1760,7 @@ function updateTyping(dt){
   }
   // 새 줄 생성
   bg.spawnTimer+=dt*1000;
-  var every=Math.max(4200,bg.spawnEvery-bg.ramp*30);
+  var every=Math.max(3000,bg.spawnEvery-bg.ramp*55);
   if(bg.spawnTimer>=every&&topY>=TPAD+TROWSTEP){bg.spawnTimer=0;spawnTypingRow(TPAD);}
   // 발사체 이동
   for(var p=bg.projectiles.length-1;p>=0;p--){
