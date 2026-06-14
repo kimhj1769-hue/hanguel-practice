@@ -1713,7 +1713,7 @@ function brickLoop(ts){
 }
 
 // ====================== 모드 A: 타이핑 벽돌깨기 ======================
-var TCOLS=6, TPAD=10, TGAP=6, TBRICKH=30;
+var TCOLS=5, TPAD=12, TGAP=8, TBRICKH=30;
 var TBRICKW=(BW-2*TPAD-(TCOLS-1)*TGAP)/TCOLS;
 var TROWSTEP=TBRICKH+TGAP;
 var TLINE=BH-72;                    // 이 선을 넘으면 펭귄에게 도달
@@ -1721,14 +1721,14 @@ var TLINE=BH-72;                    // 이 선을 넘으면 펭귄에게 도달
 function initTyping(){
   bg={type:'typing',score:0,combo:0,lives:3,over:false,
       bricks:[],projectiles:[],particles:[],
-      descend:9,spawnEvery:4200,spawnTimer:0,ramp:0,shake:0};
-  for(var r=0;r<3;r++)spawnTypingRow(TPAD+r*TROWSTEP);
+      descend:5,spawnEvery:7000,spawnTimer:0,ramp:0,shake:0};
+  for(var r=0;r<2;r++)spawnTypingRow(TPAD+r*TROWSTEP);
   updateBrickHUD();
 }
 function spawnTypingRow(y){
   var used={};
   for(var c=0;c<TCOLS;c++){
-    if(Math.random()<0.12)continue;               // 가끔 빈 칸
+    if(Math.random()<0.32)continue;               // 빈 칸 많게 → 벽돌 수 줄임
     var word;var tries=0;
     do{word=BRICK_WORDS[Math.floor(Math.random()*BRICK_WORDS.length)];tries++;}
     while((used[word]||typingHasWord(word))&&tries<20);
@@ -1743,7 +1743,7 @@ function typingHasWord(w){
 }
 function updateTyping(dt){
   bg.ramp+=dt;
-  var speed=bg.descend+bg.ramp*0.45;             // 시간이 갈수록 빨라짐
+  var speed=bg.descend+bg.ramp*0.22;             // 시간이 갈수록 천천히 빨라짐
   // 벽돌 하강
   var topY=99999;
   for(var i=0;i<bg.bricks.length;i++){
@@ -1757,7 +1757,7 @@ function updateTyping(dt){
   }
   // 새 줄 생성
   bg.spawnTimer+=dt*1000;
-  var every=Math.max(2200,bg.spawnEvery-bg.ramp*45);
+  var every=Math.max(4200,bg.spawnEvery-bg.ramp*30);
   if(bg.spawnTimer>=every&&topY>=TPAD+TROWSTEP){bg.spawnTimer=0;spawnTypingRow(TPAD);}
   // 발사체 이동
   for(var p=bg.projectiles.length-1;p>=0;p--){
@@ -1815,108 +1815,147 @@ function drawTyping(){
 }
 
 // ====================== 모드 B: 클래식 벽돌깨기 ======================
-var CCOLS=8, CMARGIN=14, CGAP=5, CTOP=42, CBRICKH=20;
+var CCOLS=7, CMARGIN=14, CGAP=6, CTOP=42, CBRICKH=24;
 var CBRICKW=(BW-2*CMARGIN-(CCOLS-1)*CGAP)/CCOLS;
-var JAMO_POOL=['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','ㅏ','ㅓ','ㅗ','ㅜ'];
+var PADDLE_BASE=92;
+// 벽돌에 표시할 2글자 단어 풀
+var CWORDS=BRICK_WORDS.filter(function(w){return w.length===2;});
+if(!CWORDS.length)CWORDS=['사과','포도','구름','바다','나무','구두','우유','다리'];
 
 function initClassic(){
-  bg={type:'classic',score:0,lives:3,level:1,over:false,
-      paddle:{w:90,h:14,x:BW/2,y:BH-30},
-      ball:{x:BW/2,y:BH-44,vx:0,vy:0,r:8,launched:false,speed:300},
-      bricks:[],particles:[],left:false,right:false,pops:[]};
+  bg={type:'classic',score:0,lives:3,level:1,over:false,shake:0,
+      paddle:{w:PADDLE_BASE,h:14,x:BW/2,y:BH-30,wideT:0},
+      balls:[],bricks:[],particles:[],items:[],pops:[],left:false,right:false};
+  bg.speed=380;                                  // 기본 공 속도 (빠르게)
   buildClassicBricks();
   updateBrickHUD();
 }
+function makeBall(){return {x:bg.paddle.x,y:bg.paddle.y-13,vx:0,vy:0,r:8,launched:false};}
 function buildClassicBricks(){
-  bg.bricks=[];
+  bg.bricks=[];bg.items=[];
+  bg.speed=380+(bg.level-1)*55;                  // 레벨마다 더 빠르게
   var rows=4+Math.min(3,bg.level-1);
   for(var r=0;r<rows;r++)for(var c=0;c<CCOLS;c++){
+    var isItem=Math.random()<0.14;               // 14% 파워업 벽돌
     bg.bricks.push({x:CMARGIN+c*(CBRICKW+CGAP),y:CTOP+r*(CBRICKH+CGAP),
       w:CBRICKW,h:CBRICKH,alive:true,color:BRICK_COLORS[r%BRICK_COLORS.length],
-      ch:JAMO_POOL[Math.floor(Math.random()*JAMO_POOL.length)]});
+      word:CWORDS[Math.floor(Math.random()*CWORDS.length)],
+      item:isItem?(Math.random()<0.5?'multi':'wide'):null});
   }
-  resetBall();
+  resetBalls();
 }
-function resetBall(){
-  bg.ball.launched=false;bg.ball.x=bg.paddle.x;bg.ball.y=bg.paddle.y-12;
-  bg.ball.vx=0;bg.ball.vy=0;bg.ball.speed=300+(bg.level-1)*45;
-}
+function resetBalls(){bg.balls=[makeBall()];}
 function launchBall(){
-  if(bg.ball.launched)return;
-  bg.ball.launched=true;
-  var ang=-Math.PI/2+(Math.random()-.5)*0.6;
-  bg.ball.vx=Math.cos(ang)*bg.ball.speed;bg.ball.vy=Math.sin(ang)*bg.ball.speed;
+  for(var i=0;i<bg.balls.length;i++){var b=bg.balls[i];
+    if(!b.launched){b.launched=true;var ang=(Math.random()-.5)*0.5;
+      b.vx=Math.sin(ang)*bg.speed;b.vy=-Math.abs(Math.cos(ang)*bg.speed);}}
+}
+function splitBalls(){
+  var src=bg.balls[0];if(!src)return;
+  for(var k=0;k<2&&bg.balls.length<6;k++){
+    var ang=(Math.random()-.5)*1.4,nb=makeBall();
+    nb.x=src.x;nb.y=src.y;nb.launched=true;
+    nb.vx=Math.sin(ang)*bg.speed;nb.vy=-Math.abs(Math.cos(ang)*bg.speed);
+    bg.balls.push(nb);
+  }
 }
 function updateClassic(dt){
-  var pd=bg.paddle,ba=bg.ball;
-  // 막대 키보드 이동
-  if(bg.left)pd.x-=420*dt; if(bg.right)pd.x+=420*dt;
+  var pd=bg.paddle;
+  // 막대 이동 + 넓힘 타이머
+  if(bg.left)pd.x-=440*dt; if(bg.right)pd.x+=440*dt;
   pd.x=Math.max(pd.w/2,Math.min(BW-pd.w/2,pd.x));
-  if(!ba.launched){ba.x=pd.x;ba.y=pd.y-12;updateParticles(dt);return;}
-  ba.x+=ba.vx*dt;ba.y+=ba.vy*dt;
-  // 벽 반사
-  if(ba.x-ba.r<0){ba.x=ba.r;ba.vx=Math.abs(ba.vx);}
-  if(ba.x+ba.r>BW){ba.x=BW-ba.r;ba.vx=-Math.abs(ba.vx);}
-  if(ba.y-ba.r<0){ba.y=ba.r;ba.vy=Math.abs(ba.vy);}
-  // 막대 충돌
-  if(ba.vy>0&&ba.y+ba.r>=pd.y-pd.h/2&&ba.y-ba.r<pd.y+pd.h/2&&ba.x>pd.x-pd.w/2-ba.r&&ba.x<pd.x+pd.w/2+ba.r){
-    var rel=(ba.x-pd.x)/(pd.w/2);rel=Math.max(-1,Math.min(1,rel));
-    var ang=rel*(Math.PI/3);                     // 최대 60도
-    ba.vx=Math.sin(ang)*ba.speed;ba.vy=-Math.abs(Math.cos(ang)*ba.speed);
-    ba.y=pd.y-pd.h/2-ba.r;sfxKey();
-  }
-  // 벽돌 충돌
-  for(var i=0;i<bg.bricks.length;i++){
-    var b=bg.bricks[i];if(!b.alive)continue;
-    if(ba.x+ba.r>b.x&&ba.x-ba.r<b.x+b.w&&ba.y+ba.r>b.y&&ba.y-ba.r<b.y+b.h){
-      b.alive=false;bg.score+=10;sfxCorrect();
-      spawnBrickParticles(ba.x,ba.y,b.color);
-      bg.pops.push({x:b.x+b.w/2,y:b.y+b.h/2,ch:b.ch,life:0.7});
-      // 가까운 면으로 반사
-      var ox=Math.min(ba.x+ba.r-b.x,b.x+b.w-(ba.x-ba.r));
-      var oy=Math.min(ba.y+ba.r-b.y,b.y+b.h-(ba.y-ba.r));
-      if(ox<oy)ba.vx=-ba.vx;else ba.vy=-ba.vy;
-      break;
+  if(pd.wideT>0){pd.wideT-=dt;if(pd.wideT<=0)pd.w=PADDLE_BASE;}
+  // 공 처리 (멀티볼)
+  for(var bi=bg.balls.length-1;bi>=0;bi--){
+    var ba=bg.balls[bi];
+    if(!ba.launched){ba.x=pd.x;ba.y=pd.y-13;continue;}
+    ba.x+=ba.vx*dt;ba.y+=ba.vy*dt;
+    if(ba.x-ba.r<0){ba.x=ba.r;ba.vx=Math.abs(ba.vx);}
+    if(ba.x+ba.r>BW){ba.x=BW-ba.r;ba.vx=-Math.abs(ba.vx);}
+    if(ba.y-ba.r<0){ba.y=ba.r;ba.vy=Math.abs(ba.vy);}
+    // 막대 충돌
+    if(ba.vy>0&&ba.y+ba.r>=pd.y-pd.h/2&&ba.y-ba.r<pd.y+pd.h/2&&ba.x>pd.x-pd.w/2-ba.r&&ba.x<pd.x+pd.w/2+ba.r){
+      var rel=Math.max(-1,Math.min(1,(ba.x-pd.x)/(pd.w/2)));
+      var ang=rel*(Math.PI/3);
+      ba.vx=Math.sin(ang)*bg.speed;ba.vy=-Math.abs(Math.cos(ang)*bg.speed);
+      ba.y=pd.y-pd.h/2-ba.r;sfxKey();
     }
+    // 벽돌 충돌
+    for(var i=0;i<bg.bricks.length;i++){
+      var b=bg.bricks[i];if(!b.alive)continue;
+      if(ba.x+ba.r>b.x&&ba.x-ba.r<b.x+b.w&&ba.y+ba.r>b.y&&ba.y-ba.r<b.y+b.h){
+        b.alive=false;bg.score+=10;sfxCorrect();
+        spawnBrickParticles(ba.x,ba.y,b.color);
+        bg.pops.push({x:b.x+b.w/2,y:b.y+b.h/2,ch:b.word,life:0.7});
+        if(b.item)bg.items.push({x:b.x+b.w/2,y:b.y+b.h/2,kind:b.item});
+        var ox=Math.min(ba.x+ba.r-b.x,b.x+b.w-(ba.x-ba.r));
+        var oy=Math.min(ba.y+ba.r-b.y,b.y+b.h-(ba.y-ba.r));
+        if(ox<oy)ba.vx=-ba.vx;else ba.vy=-ba.vy;
+        break;
+      }
+    }
+    if(ba.y-ba.r>BH)bg.balls.splice(bi,1);        // 화면 밖
   }
-  // 공 떨어짐
-  if(ba.y-ba.r>BH){
+  // 공이 전부 떨어짐 → 생명 차감
+  if(bg.balls.length===0){
     bg.lives--;bg.shake=8;
     if(bg.lives<=0){updateBrickHUD();brickGameOver('게임 오버 😵');return;}
-    resetBall();
+    resetBalls();
+  }
+  // 파워업 아이템 낙하 + 획득
+  for(var it=bg.items.length-1;it>=0;it--){
+    var item=bg.items[it];item.y+=150*dt;
+    if(item.y>=pd.y-pd.h&&Math.abs(item.x-pd.x)<pd.w/2+10){
+      if(item.kind==='multi')splitBalls();
+      else{pd.w=PADDLE_BASE*1.7;pd.wideT=11;}
+      bg.score+=15;sfxCorrect();bg.items.splice(it,1);
+    }else if(item.y>BH){bg.items.splice(it,1);}
   }
   // 레벨 클리어
   if(!bg.bricks.some(function(x){return x.alive;})){
     bg.level++;bg.score+=50;buildClassicBricks();
   }
-  // 팝업/파티클
   for(var q=bg.pops.length-1;q>=0;q--){bg.pops[q].life-=dt;bg.pops[q].y-=20*dt;if(bg.pops[q].life<=0)bg.pops.splice(q,1);}
+  if(bg.shake>0)bg.shake-=dt*60;
   updateParticles(dt);
   updateBrickHUD();
 }
 function drawClassic(){
-  var ctx=bctx;ctx.clearRect(0,0,BW,BH);
+  var ctx=bctx;ctx.save();
+  if(bg.shake>0)ctx.translate((Math.random()-.5)*bg.shake,(Math.random()-.5)*bg.shake);
+  ctx.clearRect(-20,-20,BW+40,BH+40);
   ctx.textAlign='center';ctx.textBaseline='middle';
   for(var i=0;i<bg.bricks.length;i++){
     var b=bg.bricks[i];if(!b.alive)continue;
     roundRect(ctx,b.x,b.y,b.w,b.h,5);ctx.fillStyle=b.color;ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.3)';roundRect(ctx,b.x,b.y,b.w,b.h*0.42,5);ctx.fill();
-    ctx.fillStyle='#1a2b6b';ctx.font='bold 13px "Noto Sans KR",sans-serif';
-    ctx.fillText(b.ch,b.x+b.w/2,b.y+b.h/2+1);
+    ctx.fillStyle='rgba(255,255,255,.32)';roundRect(ctx,b.x,b.y,b.w,b.h*0.42,5);ctx.fill();
+    if(b.item){ctx.fillStyle='rgba(255,255,255,.9)';ctx.font='10px serif';ctx.fillText('⭐',b.x+b.w-9,b.y+8);}
+    ctx.fillStyle='#1a2b6b';ctx.font='bold 14px "Noto Sans KR",sans-serif';
+    ctx.fillText(b.word,b.x+b.w/2,b.y+b.h/2+1);
   }
   // 글자 팝업
   for(var q=0;q<bg.pops.length;q++){var pp=bg.pops[q];
     ctx.globalAlpha=Math.max(0,pp.life/0.7);ctx.fillStyle='#ffd54a';
-    ctx.font='bold 20px "Noto Sans KR",sans-serif';ctx.fillText(pp.ch,pp.x,pp.y);ctx.globalAlpha=1;}
+    ctx.font='bold 18px "Noto Sans KR",sans-serif';ctx.fillText(pp.ch,pp.x,pp.y);ctx.globalAlpha=1;}
+  // 아이템
+  for(var it=0;it<bg.items.length;it++){var item=bg.items[it];
+    ctx.fillStyle=item.kind==='multi'?'#ff8a80':'#4dd0e1';
+    roundRect(ctx,item.x-13,item.y-9,26,18,6);ctx.fill();
+    ctx.fillStyle='#fff';ctx.font='bold 13px "Noto Sans KR",sans-serif';
+    ctx.fillText(item.kind==='multi'?'＋공':'↔',item.x,item.y+1);}
   drawParticles(ctx);
   // 막대
   var pd=bg.paddle;roundRect(ctx,pd.x-pd.w/2,pd.y-pd.h/2,pd.w,pd.h,7);
-  ctx.fillStyle='#ffd54a';ctx.fill();ctx.strokeStyle='#c79b15';ctx.lineWidth=2;ctx.stroke();
-  // 공
-  var ba=bg.ball;ctx.beginPath();ctx.arc(ba.x,ba.y,ba.r,0,7);ctx.fillStyle='#fff';ctx.fill();
-  ctx.strokeStyle='#cfe3ff';ctx.lineWidth=2;ctx.stroke();
-  if(!ba.launched){ctx.fillStyle='#fff';ctx.font='bold 14px "Noto Sans KR",sans-serif';
+  ctx.fillStyle=pd.wideT>0?'#80deea':'#ffd54a';ctx.fill();
+  ctx.strokeStyle='#c79b15';ctx.lineWidth=2;ctx.stroke();
+  // 공들
+  var anyLaunched=false;
+  for(var k=0;k<bg.balls.length;k++){var ba=bg.balls[k];if(ba.launched)anyLaunched=true;
+    ctx.beginPath();ctx.arc(ba.x,ba.y,ba.r,0,7);ctx.fillStyle='#fff';ctx.fill();
+    ctx.strokeStyle='#cfe3ff';ctx.lineWidth=2;ctx.stroke();}
+  if(!anyLaunched){ctx.fillStyle='#fff';ctx.font='bold 14px "Noto Sans KR",sans-serif';
     ctx.fillText('스페이스 / 클릭으로 발사!',BW/2,BH/2);}
+  ctx.restore();
 }
 
 // ---------- 공통 유틸 (파티클 / 둥근사각형) ----------
