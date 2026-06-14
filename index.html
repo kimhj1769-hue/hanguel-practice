@@ -287,27 +287,35 @@ body { font-family:var(--font); overflow:hidden; height:100vh; user-select:none;
 }
 .kb-panel.show{display:flex;}
 .kb-legend{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;margin-bottom:2px;}
+.kb-hands{width:210px;height:auto;display:block;margin:0 auto 2px;}
 .kbl{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;}
 .kbl.lp{background:#ffcdd2;color:#c62828;} .kbl.lr{background:#ffe0b2;color:#bf360c;}
 .kbl.lm{background:#fff9c4;color:#f57f17;} .kbl.li{background:#c8e6c9;color:#1b5e20;}
 .kbl.ri{background:#bbdefb;color:#0d47a1;} .kbl.rm{background:#e1bee7;color:#4a148c;}
 .kbl.rr{background:#f8bbd0;color:#880e4f;} .kbl.rp{background:#b2ebf2;color:#006064;}
 .kbl.th{background:#eceff1;color:#37474f;}
-.kb-rows{display:flex;flex-direction:column;gap:3px;align-items:center;}
-.kb-row{display:flex;gap:3px;}
+.kb-rows{position:relative;display:flex;flex-direction:column;gap:3px;align-items:center;padding-top:14px;}
+/* 자판 배경 손가락 — 각 손가락이 담당 키 열 뒤에 옅게 깔림 */
+.kb-finger-bg{position:absolute;left:0;right:0;top:0;bottom:8px;display:flex;gap:3px;z-index:0;pointer-events:none;}
+.kb-finger-bg .ff{margin-top:2px;border-radius:18px 18px 22px 22px;opacity:0.22;}
+.ff.lp{flex:1;background:#ef9a9a;} .ff.lr{flex:1;background:#ffb74d;} .ff.lm{flex:1;background:#fff176;}
+.ff.li{flex:2;background:#a5d6a7;} .ff.ri{flex:2;background:#90caf9;}
+.ff.rm{flex:1;background:#ce93d8;} .ff.rr{flex:1;background:#f48fb1;} .ff.rp{flex:1;background:#80deea;}
+.kb-row{position:relative;z-index:1;display:flex;gap:3px;}
 .kb-row2{padding-left:18px;} .kb-row3{padding-left:36px;} .kb-row4{padding-left:0;}
 .kb-key{
-  width:32px;height:36px;border-radius:5px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;
+  position:relative;z-index:1;
+  width:42px;height:50px;border-radius:7px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;
   font-weight:700;cursor:default;
-  border-bottom:2px solid rgba(0,0,0,0.18);
+  border-bottom:3px solid rgba(0,0,0,0.18);
   transition:transform .15s,box-shadow .15s,opacity .2s,filter .2s;
   user-select:none;
-  opacity:0.28;filter:grayscale(0.35) brightness(0.9);
+  opacity:0.32;filter:grayscale(0.3) brightness(0.92);
 }
-.kb-space{width:190px;height:32px;margin-top:2px;font-size:11px;color:#777;font-weight:600;}
-.k-en{font-size:9px;opacity:.65;line-height:1;font-weight:600;}
-.k-ko{font-size:14px;line-height:1;font-weight:800;}
+.kb-space{width:250px;height:40px;margin-top:2px;font-size:12px;color:#777;font-weight:600;position:relative;z-index:1;}
+.k-en{font-size:11px;opacity:.65;line-height:1;font-weight:600;}
+.k-ko{font-size:19px;line-height:1;font-weight:800;}
 /* 손가락 색상 */
 .kb-key.lp{background:#ffcdd2;color:#c62828;}
 .kb-key.lr{background:#ffe0b2;color:#bf360c;}
@@ -318,12 +326,17 @@ body { font-family:var(--font); overflow:hidden; height:100vh; user-select:none;
 .kb-key.rr{background:#f8bbd0;color:#880e4f;}
 .kb-key.rp{background:#b2ebf2;color:#006064;}
 .kb-key.th{background:#eceff1;color:#37474f;}
-/* 활성 키 — 완전히 밝게 + 떠오름 */
+/* 활성 키 — 완전히 밝게 + 떠오름 + 빨간 펄스로 강조 */
 .kb-key.active{
   opacity:1;filter:none;
-  transform:scale(1.18) translateY(-2px);
-  box-shadow:0 0 0 2px #fff,0 0 0 4px #333,0 4px 8px rgba(0,0,0,.3);
+  transform:scale(1.25) translateY(-3px);
+  box-shadow:0 0 0 2px #fff,0 0 0 4px #ff5252,0 6px 14px rgba(0,0,0,.32);
   z-index:2;
+  animation:kbPulse .8s ease-in-out infinite;
+}
+@keyframes kbPulse{
+  0%,100%{box-shadow:0 0 0 2px #fff,0 0 0 4px #ff5252,0 6px 14px rgba(0,0,0,.32);}
+  50%{box-shadow:0 0 0 2px #fff,0 0 0 6px #ff8a80,0 6px 18px rgba(255,82,82,.45);}
 }
 .kb-hint{
   font-size:12px;font-weight:700;color:#1976d2;
@@ -589,13 +602,31 @@ body { font-family:var(--font); overflow:hidden; height:100vh; user-select:none;
   <!-- 키보드 가이드 패널 -->
   <div class="kb-panel" id="kb-panel">
     <div class="kb-legend">
-      <span class="kbl lp">왼새끼</span><span class="kbl lr">왼약지</span>
-      <span class="kbl lm">왼중지</span><span class="kbl li">왼검지</span>
-      <span class="kbl th">엄지</span>
-      <span class="kbl ri">오검지</span><span class="kbl rm">오중지</span>
-      <span class="kbl rr">오약지</span><span class="kbl rp">오새끼</span>
+      <svg class="kb-hands" viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="손가락 위치 안내">
+        <!-- 왼손 (새끼·약지·중지·검지 + 엄지) -->
+        <g stroke="#cfcfcf" stroke-width="1.2">
+          <rect x="10"  y="36" width="15" height="38" rx="7" fill="#ffcdd2"/>
+          <rect x="29"  y="20" width="16" height="54" rx="7" fill="#ffe0b2"/>
+          <rect x="49"  y="13" width="16" height="61" rx="7" fill="#fff9c4"/>
+          <rect x="69"  y="26" width="16" height="48" rx="7" fill="#c8e6c9"/>
+          <rect x="8"   y="68" width="85" height="26" rx="13" fill="#f3f4f6"/>
+          <rect x="84"  y="62" width="30" height="15" rx="7" fill="#eceff1" transform="rotate(28 84 69)"/>
+        </g>
+        <!-- 오른손 (검지·중지·약지·새끼 + 엄지) -->
+        <g stroke="#cfcfcf" stroke-width="1.2">
+          <rect x="215" y="26" width="16" height="48" rx="7" fill="#bbdefb"/>
+          <rect x="235" y="13" width="16" height="61" rx="7" fill="#e1bee7"/>
+          <rect x="255" y="20" width="16" height="54" rx="7" fill="#f8bbd0"/>
+          <rect x="275" y="36" width="15" height="38" rx="7" fill="#b2ebf2"/>
+          <rect x="207" y="68" width="85" height="26" rx="13" fill="#f3f4f6"/>
+          <rect x="186" y="62" width="30" height="15" rx="7" fill="#eceff1" transform="rotate(-28 216 69)"/>
+        </g>
+      </svg>
     </div>
     <div class="kb-rows">
+      <div class="kb-finger-bg" aria-hidden="true">
+        <span class="ff lp"></span><span class="ff lr"></span><span class="ff lm"></span><span class="ff li"></span><span class="ff ri"></span><span class="ff rm"></span><span class="ff rr"></span><span class="ff rp"></span>
+      </div>
       <!-- 1행 -->
       <div class="kb-row">
         <div class="kb-key lp" data-key="q"><span class="k-en">Q</span><span class="k-ko">ㅂ</span></div>
@@ -843,19 +874,26 @@ var SENTENCES = {
     '긍정적인 생각과 밝은 마음가짐이 성공의 첫 번째 조건이에요']
 };
 
-// ==================== 기본자리 단어 (홈포지션: asdfghjkl) ====================
-// 홈포지션 한글: ㅁ(A) ㄴ(S) ㅇ(D) ㄹ(F) ㅎ(G) ㅗ(H) ㅓ(J) ㅏ(K) ㅣ(L)
+// ==================== 기본자리 단어 (단계별 자판 확장) ====================
+// 단계적으로 자판 전체를 익히도록 난이도별로 사용 영역을 넓힌다.
+//  easy   : 홈포지션(가운데 줄)  — ㅁㄴㅇㄹㅎ / ㅗㅓㅏㅣ  (A~L)
+//  normal : 가운데 + 윗줄         — ㅂㅈㄷㄱㅅ / ㅛㅕㅑㅐㅔ (Q~P) 추가
+//  hard   : 전체 자판            — ㅋㅌㅊㅍ / ㅠㅜㅡ        (Z~M) 까지
 var HOMEROW_WORDS = {
+  // 1단계: 홈포지션만 (가운데 줄)
   easy:['마','나','아','라','하','모','노','오','로','호',
     '미','니','이','리','히','머','너','어','러','허',
     '마나','나아','오리','아이','하나','이마','이모','나이','마라','아마',
     '노마','하마','로마','아나','모이','이나','라마','오마','나마','이리'],
-  normal:['아이마','나라이','이모나','하나이','아마나','나이마','마라이',
-    '아이나','모이나','하마이','오리나','이리마','나라나','아마이','로마나',
-    '아나이','마이나','이모아','나이로','오마하'],
-  hard:['아이 이마','나라 오리','하나 아마','이모 나이','아마 이리',
-    '나 이마 이모','아 나라 하나','오리 마라 아이','이나 아마 모이',
-    '나이 이마 아모라']
+  // 2단계: 가운데 + 윗줄 (ㅂㅈㄷㄱㅅ, ㅐㅔㅑㅕㅛ) — 아랫줄은 아직 사용 안 함
+  normal:['가','다','바','사','자','개','배','새','게','비','시','지','거','서','도','보','소','조',
+    '가지','바다','사자','다리','머리','거리','바지','지도','시계','개미','거미','아기',
+    '아버지','어머니','바나나','사다리','라디오','자전거','시소','새우','보라'],
+  // 3단계: 전체 자판 (아랫줄 ㅋㅌㅊㅍ, ㅠㅜㅡ 포함)
+  hard:['코','추','크','트','푸','치','쿠','투',
+    '코끼리','치마','토끼','포도','우유','구두','친구','축구','크다','트럭',
+    '컴퓨터','토마토','자동차','버스','국수','무지개','호수','추워','그네','코뿔소',
+    '코끼리 친구','포도 우유','트럭 축구','치마 구두','토끼 무지개']
 };
 
 // ==================== 상수 ====================
@@ -893,23 +931,24 @@ function getWordPool(){
 // ==================== BGM (Web Audio API) ====================
 var bgm={ctx:null,gain:null,sfxGain:null,enabled:true,loopTO:null};
 var hatBuf=null; // hi-hat AudioBuffer (1회 생성 후 재사용)
-var BGM_B=60/150; // 150BPM — 귀엽고 경쾌한 펭귄 테마
-// 펭귄 테마 멜로디 (C장조, 뮤직박스 느낌)
+var BGM_B=60/172; // 172BPM — 더 빠르고 발랄한 펭귄 테마
+// 펭귄 테마 멜로디 (C장조, 통통 튀는 8분음표 위주 / 총 32박)
 // [주파수Hz, 박자수]
 var BGM_MEL=[
-  // 구절A — 경쾌하게 올라가기
-  [659,1],[784,1],[880,2],[784,1],[659,1],[524,2],   // E G A-- G E C--
-  [659,1],[784,1],[1047,2],[988,1],[880,2],[784,1],  // E G C6-- B A-- G
-  // 구절B — 내려오기
-  [880,1],[784,1],[698,1],[659,1],[588,2],[524,2],   // A G F E D-- C--
-  [588,1],[659,1],[698,2],[659,1],[588,1],[524,2],   // D E F-- E D C--
-  // 구절C — 브릿지 (통통 튀는 느낌)
-  [784,2],[659,2],[784,2],[880,2],                   // G-- E-- G-- A--
-  [1047,2],[880,2],[784,4],                          // C6-- A-- G----
-  // 구절D — 마무리
-  [880,1],[784,1],[659,2],[784,1],[880,1],[524,4]    // A G E-- G A C----
+  // 구절A — 깡총깡총 상승
+  [523,.5],[659,.5],[784,.5],[659,.5],[784,.5],[1047,.5],[784,1],   // 도미솔미솔도6 솔
+  [880,.5],[1047,.5],[880,.5],[784,.5],[659,1],[523,1],            // 라도6라솔 미 도
+  // 구절B — 통통 점프
+  [659,.5],[784,.5],[880,.5],[1047,.5],[988,.5],[880,.5],[784,1],   // 미솔라도6 시라 솔
+  [698,.5],[880,.5],[698,.5],[659,.5],[523,2],                      // 파라파미 도--
+  // 구절C — 신나게 높이
+  [784,.5],[1047,.5],[1319,.5],[1047,.5],[1175,.5],[1319,.5],[1047,1], // 솔도6미6도6 레6미6 도6
+  [880,.5],[1047,.5],[880,.5],[784,.5],[880,1],[1047,1],            // 라도6라솔 라 도6
+  // 구절D — 마무리 통통
+  [1047,.5],[988,.5],[880,.5],[784,.5],[659,.5],[784,.5],[880,1],   // 도6시라솔 미솔 라
+  [523,.5],[659,.5],[784,.5],[1047,.5],[523,2]                      // 도미솔도6 도--
 ];
-// 베이스: 4박자마다 1음 (통통 튀는 아르페지오)
+// 베이스: 4박자마다 1음 (통통 튀는 아르페지오, 멜로디 32박과 정렬)
 var BGM_BASS=[262,392,262,330,220,330,262,392];
 
 function bgmNote(freq,t,dur,type,vol){
@@ -1199,11 +1238,11 @@ function prepareGame(){
 }
 function beginGame(){
   gs.isRunning=true;gs.startTime=Date.now();
-  var labels={sentence:'현재 문장',homerow:'🏠 기본자리 연습 — 홈포지션 키만 사용해요!'};
+  var labels={sentence:'현재 문장',homerow:'⌨️ 기본자리 연습 — 자판의 색깔로 손가락을 확인하세요!'};
   gid('word-stage-label').textContent=labels[gameMode]||'현재 단어';
-  // 기본자리 모드: 손가락 가이드 표시, 키보드 패널도 자동 열기
+  // 기본자리 모드: 위쪽 손가락 그림 대신, 손가락 색이 칠해진 키보드를 메인 가이드로 사용
   if(gameMode==='homerow'){
-    showFingerGuide(true);
+    showFingerGuide(false);
     if(!kbVisible){
       kbVisible=true;
       var panel=gid('kb-panel');var btn=gid('btn-kb');
