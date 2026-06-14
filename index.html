@@ -74,6 +74,7 @@ body { font-family:var(--font); overflow:hidden; height:100vh; user-select:none;
 .card-sentence{background:linear-gradient(135deg,#4fc3f7,#0277bd);}
 .card-speed{background:linear-gradient(135deg,#b0e840,#5aad12);}
 .card-homerow{background:linear-gradient(135deg,#ce93d8,#7b1fa2);}
+.card-game{background:linear-gradient(135deg,#ff8a80,#d81b60);}
 .main-footer{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:center;}
 .best-score-badge{display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.85);
   border-radius:50px;padding:8px 20px;font-size:15px;font-weight:700;color:#0d47a1;
@@ -427,6 +428,36 @@ body { font-family:var(--font); overflow:hidden; height:100vh; user-select:none;
   .char-box{font-size:18px;height:36px;min-width:30px;}
   .kb-panel{display:none!important;}
 }
+
+/* ==================== 벽돌깨기 게임 ==================== */
+#screen-brick{align-items:center;justify-content:flex-start;}
+.brick-hud{display:flex;align-items:center;gap:16px;padding:12px 18px;margin-top:10px;
+  background:#fff;border:3px solid #1a2b6b;border-radius:14px;box-shadow:0 5px 0 rgba(0,0,0,.18);}
+.brick-hud .hud-item{display:flex;flex-direction:column;align-items:center;}
+.brick-hud .hud-label{font-size:11px;color:#7a8;font-weight:700;}
+.brick-hud .hud-val{font-size:20px;font-weight:800;color:#1a2b6b;}
+.brick-stage{position:relative;margin-top:12px;width:480px;max-width:94vw;}
+#brick-canvas{display:block;width:100%;height:auto;background:linear-gradient(180deg,#0d1b3e,#1c3a6e);
+  border:4px solid #0d1b3e;border-radius:14px;box-shadow:0 8px 0 rgba(0,0,0,.25);touch-action:none;}
+.brick-overlay{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:14px;background:rgba(13,27,62,.78);border-radius:14px;color:#fff;text-align:center;}
+.brick-overlay.show{display:flex;}
+.brick-overlay .bo-title{font-size:30px;font-weight:900;text-shadow:0 3px 0 rgba(0,0,0,.3);}
+.brick-overlay .bo-sub{font-size:15px;opacity:.9;}
+.brick-overlay button{font-family:inherit;font-size:17px;font-weight:800;cursor:pointer;
+  padding:12px 28px;border:none;border-radius:30px;background:#ffd54a;color:#1a2b6b;
+  box-shadow:0 5px 0 #c79b15;}
+.brick-overlay button:active{transform:translateY(3px);box-shadow:0 2px 0 #c79b15;}
+.brick-bottom{width:480px;max-width:94vw;margin-top:12px;}
+.brick-input-row{display:flex;}
+.brick-input-row .typing-input{flex:1;text-align:center;}
+.brick-input-row.hidden{display:none;}
+.brick-hint{margin-top:8px;text-align:center;font-size:13px;color:#fff;font-weight:700;
+  background:rgba(0,0,0,.25);border-radius:10px;padding:7px 10px;min-height:18px;}
+@media (max-width:520px){
+  .brick-hud .hud-val{font-size:17px;}
+  .brick-overlay .bo-title{font-size:24px;}
+}
 </style>
 </head>
 <body>
@@ -476,6 +507,9 @@ body { font-family:var(--font); overflow:hidden; height:100vh; user-select:none;
       </button>
       <button class="mode-card card-speed"    onclick="selectMode('speed')">
         <span class="card-emoji">⚡</span><strong>속도 도전</strong><small>60초 안에 최대한 많이!</small>
+      </button>
+      <button class="mode-card card-game"     onclick="openGameSelect()">
+        <span class="card-emoji">🎮</span><strong>게임</strong><small>벽돌깨기로 재미있게!</small>
       </button>
     </div>
     <div class="main-footer">
@@ -712,6 +746,45 @@ body { font-family:var(--font); overflow:hidden; height:100vh; user-select:none;
     <h2 class="panel-title">📊 나의 기록</h2>
     <div class="records-list" id="records-list"></div>
     <button class="btn-back" onclick="showScreen('screen-main')">← 돌아가기</button>
+  </div>
+</div>
+
+<!-- ===== 게임 선택 화면 ===== -->
+<div id="screen-gameselect" class="screen">
+  <div class="panel level-panel">
+    <h2 class="panel-title">🎮 게임 고르기<br><small>두 가지 벽돌깨기!</small></h2>
+    <div class="level-cards">
+      <button class="level-card lv-easy" onclick="startBrick('typing')">
+        <span class="lv-icon">⌨️</span><span class="lv-name">타이핑 벽돌깨기</span>
+        <span class="lv-desc">벽돌 글자를 타이핑해서 깨요</span><div class="lv-stars">A</div>
+      </button>
+      <button class="level-card lv-normal" onclick="startBrick('classic')">
+        <span class="lv-icon">🏓</span><span class="lv-name">클래식 벽돌깨기</span>
+        <span class="lv-desc">막대로 공을 튕겨 깨요</span><div class="lv-stars">B</div>
+      </button>
+    </div>
+    <button class="btn-back" onclick="showScreen('screen-main')">← 돌아가기</button>
+  </div>
+</div>
+
+<!-- ===== 벽돌깨기 게임 화면 ===== -->
+<div id="screen-brick" class="screen">
+  <div class="brick-hud">
+    <div class="hud-item"><span class="hud-label">점수</span><span class="hud-val" id="brick-score">0</span></div>
+    <div class="hud-item"><span class="hud-label" id="brick-mid-label">남은벽돌</span><span class="hud-val" id="brick-mid">0</span></div>
+    <div class="hud-item"><span class="hud-label">생명</span><span class="hud-val" id="brick-lives">❤️❤️❤️</span></div>
+    <button class="btn-home-game" onclick="quitBrick()" title="처음으로">🏠</button>
+  </div>
+  <div class="brick-stage" id="brick-stage">
+    <canvas id="brick-canvas" width="480" height="540"></canvas>
+    <div class="brick-overlay" id="brick-overlay"></div>
+  </div>
+  <div class="brick-bottom">
+    <div class="brick-input-row" id="brick-input-row">
+      <input id="brick-input" type="text" class="typing-input" placeholder="벽돌의 글자를 입력!"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+    </div>
+    <div class="brick-hint" id="brick-hint"></div>
   </div>
 </div>
 
@@ -1560,6 +1633,344 @@ function renderRecords(){
       '<span class="rec-score">'+r.score.toLocaleString()+'</span></div>';
   }
   list.innerHTML=html;
+}
+
+// ==================================================================
+// ==================== 벽돌깨기 게임 (게임 메뉴) ====================
+// ==================================================================
+var BW=480, BH=540;                 // 캔버스 논리 크기
+var bg=null;                        // 벽돌게임 상태
+var brickRAF=null;                  // requestAnimationFrame 핸들
+var brickCanvas=null, bctx=null;
+
+// 타이핑 모드용 짧은 단어 풀 (3글자 이하, 공백 없는 것)
+var BRICK_WORDS=[];
+(function(){
+  var src=WORDS.easy.concat(WORDS.normal);
+  for(var i=0;i<src.length;i++){var w=src[i];if(w.length<=3&&w.indexOf(' ')<0)BRICK_WORDS.push(w);}
+})();
+var BRICK_COLORS=['#ff6b6b','#ffa94d','#ffd43b','#69db7c','#4dabf7','#b197fc','#f783ac'];
+
+function openGameSelect(){startBGM();showScreen('screen-gameselect');}
+
+// ---------- 공통: 시작 / 종료 ----------
+function startBrick(type){
+  startBGM();
+  showScreen('screen-brick');
+  if(!brickCanvas){brickCanvas=gid('brick-canvas');bctx=brickCanvas.getContext('2d');wireBrickControls();}
+  gid('brick-overlay').classList.remove('show');
+  var inputRow=gid('brick-input-row');
+  if(type==='typing'){
+    inputRow.classList.remove('hidden');
+    gid('brick-mid-label').textContent='남은벽돌';
+    gid('brick-hint').textContent='벽돌에 적힌 글자를 타이핑하면 펭귄이 눈덩이를 쏴요! ⛄';
+    initTyping();
+  }else{
+    inputRow.classList.add('hidden');
+    gid('brick-mid-label').textContent='레벨';
+    gid('brick-hint').textContent='마우스 또는 ← → 로 막대를 움직이고, 스페이스/클릭으로 공을 쏴요!';
+    initClassic();
+  }
+  bg.last=0;
+  if(brickRAF)cancelAnimationFrame(brickRAF);
+  brickRAF=requestAnimationFrame(brickLoop);
+  if(type==='typing')setTimeout(function(){gid('brick-input').focus();},120);
+}
+function quitBrick(){
+  if(brickRAF){cancelAnimationFrame(brickRAF);brickRAF=null;}
+  bg=null;
+  showScreen('screen-main');
+}
+function retryBrick(){var t=bg?bg.type:'typing';startBrick(t);}
+
+function updateBrickHUD(){
+  gid('brick-score').textContent=bg.score;
+  if(bg.type==='typing')gid('brick-mid').textContent=bg.bricks.filter(function(b){return b.alive;}).length;
+  else gid('brick-mid').textContent=bg.level;
+  var h='';for(var i=0;i<bg.lives;i++)h+='❤️';for(var j=bg.lives;j<3;j++)h+='🤍';
+  gid('brick-lives').textContent=h||'💔';
+}
+function brickGameOver(msg){
+  bg.over=true;
+  var ov=gid('brick-overlay');
+  ov.innerHTML='<div class="bo-title">'+msg+'</div>'+
+    '<div class="bo-sub">최종 점수 <b>'+bg.score+'</b>점</div>'+
+    '<button onclick="retryBrick()">🔄 다시하기</button>'+
+    '<button onclick="quitBrick()" style="background:#fff;box-shadow:0 5px 0 #bbb;">🏠 처음으로</button>';
+  ov.classList.add('show');
+}
+
+// ---------- 메인 루프 ----------
+function brickLoop(ts){
+  if(!bg){return;}
+  if(!bg.last)bg.last=ts;
+  var dt=Math.min(0.045,(ts-bg.last)/1000);bg.last=ts;
+  if(!bg.over){
+    if(bg.type==='typing')updateTyping(dt);else updateClassic(dt);
+  }
+  if(bg.type==='typing')drawTyping();else drawClassic();
+  brickRAF=requestAnimationFrame(brickLoop);
+}
+
+// ====================== 모드 A: 타이핑 벽돌깨기 ======================
+var TCOLS=6, TPAD=10, TGAP=6, TBRICKH=30;
+var TBRICKW=(BW-2*TPAD-(TCOLS-1)*TGAP)/TCOLS;
+var TROWSTEP=TBRICKH+TGAP;
+var TLINE=BH-72;                    // 이 선을 넘으면 펭귄에게 도달
+
+function initTyping(){
+  bg={type:'typing',score:0,combo:0,lives:3,over:false,
+      bricks:[],projectiles:[],particles:[],
+      descend:9,spawnEvery:4200,spawnTimer:0,ramp:0,shake:0};
+  for(var r=0;r<3;r++)spawnTypingRow(TPAD+r*TROWSTEP);
+  updateBrickHUD();
+}
+function spawnTypingRow(y){
+  var used={};
+  for(var c=0;c<TCOLS;c++){
+    if(Math.random()<0.12)continue;               // 가끔 빈 칸
+    var word;var tries=0;
+    do{word=BRICK_WORDS[Math.floor(Math.random()*BRICK_WORDS.length)];tries++;}
+    while((used[word]||typingHasWord(word))&&tries<20);
+    used[word]=1;
+    bg.bricks.push({x:TPAD+c*(TBRICKW+TGAP),y:y,w:TBRICKW,h:TBRICKH,
+      word:word,alive:true,targeted:false,color:BRICK_COLORS[Math.floor(Math.random()*BRICK_COLORS.length)]});
+  }
+}
+function typingHasWord(w){
+  for(var i=0;i<bg.bricks.length;i++)if(bg.bricks[i].alive&&bg.bricks[i].word===w)return true;
+  return false;
+}
+function updateTyping(dt){
+  bg.ramp+=dt;
+  var speed=bg.descend+bg.ramp*0.45;             // 시간이 갈수록 빨라짐
+  // 벽돌 하강
+  var topY=99999;
+  for(var i=0;i<bg.bricks.length;i++){
+    var b=bg.bricks[i];if(!b.alive)continue;
+    b.y+=speed*dt;
+    if(b.y<topY)topY=b.y;
+    if(b.y+b.h>=TLINE){                          // 펭귄 라인 도달
+      b.alive=false;bg.lives--;bg.combo=0;bg.shake=10;sfxError();
+      if(bg.lives<=0){updateBrickHUD();brickGameOver('게임 오버 😵');return;}
+    }
+  }
+  // 새 줄 생성
+  bg.spawnTimer+=dt*1000;
+  var every=Math.max(2200,bg.spawnEvery-bg.ramp*45);
+  if(bg.spawnTimer>=every&&topY>=TPAD+TROWSTEP){bg.spawnTimer=0;spawnTypingRow(TPAD);}
+  // 발사체 이동
+  for(var p=bg.projectiles.length-1;p>=0;p--){
+    var pr=bg.projectiles[p];var tb=pr.target;
+    if(!tb.alive){bg.projectiles.splice(p,1);continue;}
+    var dx=(tb.x+tb.w/2)-pr.x, dy=(tb.y+tb.h/2)-pr.y, d=Math.hypot(dx,dy);
+    if(d<14){                                    // 명중
+      tb.alive=false;bg.score+=10+bg.combo*2;bg.combo++;
+      spawnBrickParticles(tb.x+tb.w/2,tb.y+tb.h/2,tb.color);
+      bg.projectiles.splice(p,1);sfxCorrect();
+    }else{var s=pr.speed*dt;pr.x+=dx/d*s;pr.y+=dy/d*s;}
+  }
+  updateParticles(dt);
+  if(bg.shake>0)bg.shake-=dt*60;
+  updateBrickHUD();
+}
+function fireTyping(word){
+  // 가장 아래쪽(위험한) 벽돌부터 조준
+  var target=null;
+  for(var i=0;i<bg.bricks.length;i++){
+    var b=bg.bricks[i];
+    if(b.alive&&!b.targeted&&b.word===word){if(!target||b.y>target.y)target=b;}
+  }
+  if(!target)return false;
+  target.targeted=true;
+  bg.projectiles.push({x:BW/2,y:BH-34,target:target,speed:780});
+  return true;
+}
+function drawTyping(){
+  var ctx=bctx;ctx.save();
+  if(bg.shake>0)ctx.translate((Math.random()-.5)*bg.shake,(Math.random()-.5)*bg.shake);
+  ctx.clearRect(-20,-20,BW+40,BH+40);
+  // 위험선
+  ctx.strokeStyle='rgba(255,120,120,.55)';ctx.lineWidth=2;ctx.setLineDash([8,8]);
+  ctx.beginPath();ctx.moveTo(0,TLINE);ctx.lineTo(BW,TLINE);ctx.stroke();ctx.setLineDash([]);
+  // 벽돌
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(var i=0;i<bg.bricks.length;i++){
+    var b=bg.bricks[i];if(!b.alive)continue;
+    roundRect(ctx,b.x,b.y,b.w,b.h,7);ctx.fillStyle=b.color;ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.35)';roundRect(ctx,b.x,b.y,b.w,b.h*0.42,7);ctx.fill();
+    ctx.fillStyle='#1a2b6b';ctx.font='bold 17px "Noto Sans KR",sans-serif';
+    ctx.fillText(b.word,b.x+b.w/2,b.y+b.h/2+1);
+  }
+  // 발사체 (눈덩이)
+  for(var p=0;p<bg.projectiles.length;p++){
+    var pr=bg.projectiles[p];
+    ctx.beginPath();ctx.arc(pr.x,pr.y,7,0,7);ctx.fillStyle='#fff';ctx.fill();
+    ctx.strokeStyle='#cfe3ff';ctx.lineWidth=2;ctx.stroke();
+  }
+  drawParticles(ctx);
+  // 펭귄 대포
+  ctx.font='34px serif';ctx.fillText('🐧',BW/2,BH-28);
+  ctx.restore();
+}
+
+// ====================== 모드 B: 클래식 벽돌깨기 ======================
+var CCOLS=8, CMARGIN=14, CGAP=5, CTOP=42, CBRICKH=20;
+var CBRICKW=(BW-2*CMARGIN-(CCOLS-1)*CGAP)/CCOLS;
+var JAMO_POOL=['ㄱ','ㄴ','ㄷ','ㄹ','ㅁ','ㅂ','ㅅ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ','ㅏ','ㅓ','ㅗ','ㅜ'];
+
+function initClassic(){
+  bg={type:'classic',score:0,lives:3,level:1,over:false,
+      paddle:{w:90,h:14,x:BW/2,y:BH-30},
+      ball:{x:BW/2,y:BH-44,vx:0,vy:0,r:8,launched:false,speed:300},
+      bricks:[],particles:[],left:false,right:false,pops:[]};
+  buildClassicBricks();
+  updateBrickHUD();
+}
+function buildClassicBricks(){
+  bg.bricks=[];
+  var rows=4+Math.min(3,bg.level-1);
+  for(var r=0;r<rows;r++)for(var c=0;c<CCOLS;c++){
+    bg.bricks.push({x:CMARGIN+c*(CBRICKW+CGAP),y:CTOP+r*(CBRICKH+CGAP),
+      w:CBRICKW,h:CBRICKH,alive:true,color:BRICK_COLORS[r%BRICK_COLORS.length],
+      ch:JAMO_POOL[Math.floor(Math.random()*JAMO_POOL.length)]});
+  }
+  resetBall();
+}
+function resetBall(){
+  bg.ball.launched=false;bg.ball.x=bg.paddle.x;bg.ball.y=bg.paddle.y-12;
+  bg.ball.vx=0;bg.ball.vy=0;bg.ball.speed=300+(bg.level-1)*45;
+}
+function launchBall(){
+  if(bg.ball.launched)return;
+  bg.ball.launched=true;
+  var ang=-Math.PI/2+(Math.random()-.5)*0.6;
+  bg.ball.vx=Math.cos(ang)*bg.ball.speed;bg.ball.vy=Math.sin(ang)*bg.ball.speed;
+}
+function updateClassic(dt){
+  var pd=bg.paddle,ba=bg.ball;
+  // 막대 키보드 이동
+  if(bg.left)pd.x-=420*dt; if(bg.right)pd.x+=420*dt;
+  pd.x=Math.max(pd.w/2,Math.min(BW-pd.w/2,pd.x));
+  if(!ba.launched){ba.x=pd.x;ba.y=pd.y-12;updateParticles(dt);return;}
+  ba.x+=ba.vx*dt;ba.y+=ba.vy*dt;
+  // 벽 반사
+  if(ba.x-ba.r<0){ba.x=ba.r;ba.vx=Math.abs(ba.vx);}
+  if(ba.x+ba.r>BW){ba.x=BW-ba.r;ba.vx=-Math.abs(ba.vx);}
+  if(ba.y-ba.r<0){ba.y=ba.r;ba.vy=Math.abs(ba.vy);}
+  // 막대 충돌
+  if(ba.vy>0&&ba.y+ba.r>=pd.y-pd.h/2&&ba.y-ba.r<pd.y+pd.h/2&&ba.x>pd.x-pd.w/2-ba.r&&ba.x<pd.x+pd.w/2+ba.r){
+    var rel=(ba.x-pd.x)/(pd.w/2);rel=Math.max(-1,Math.min(1,rel));
+    var ang=rel*(Math.PI/3);                     // 최대 60도
+    ba.vx=Math.sin(ang)*ba.speed;ba.vy=-Math.abs(Math.cos(ang)*ba.speed);
+    ba.y=pd.y-pd.h/2-ba.r;sfxKey();
+  }
+  // 벽돌 충돌
+  for(var i=0;i<bg.bricks.length;i++){
+    var b=bg.bricks[i];if(!b.alive)continue;
+    if(ba.x+ba.r>b.x&&ba.x-ba.r<b.x+b.w&&ba.y+ba.r>b.y&&ba.y-ba.r<b.y+b.h){
+      b.alive=false;bg.score+=10;sfxCorrect();
+      spawnBrickParticles(ba.x,ba.y,b.color);
+      bg.pops.push({x:b.x+b.w/2,y:b.y+b.h/2,ch:b.ch,life:0.7});
+      // 가까운 면으로 반사
+      var ox=Math.min(ba.x+ba.r-b.x,b.x+b.w-(ba.x-ba.r));
+      var oy=Math.min(ba.y+ba.r-b.y,b.y+b.h-(ba.y-ba.r));
+      if(ox<oy)ba.vx=-ba.vx;else ba.vy=-ba.vy;
+      break;
+    }
+  }
+  // 공 떨어짐
+  if(ba.y-ba.r>BH){
+    bg.lives--;bg.shake=8;
+    if(bg.lives<=0){updateBrickHUD();brickGameOver('게임 오버 😵');return;}
+    resetBall();
+  }
+  // 레벨 클리어
+  if(!bg.bricks.some(function(x){return x.alive;})){
+    bg.level++;bg.score+=50;buildClassicBricks();
+  }
+  // 팝업/파티클
+  for(var q=bg.pops.length-1;q>=0;q--){bg.pops[q].life-=dt;bg.pops[q].y-=20*dt;if(bg.pops[q].life<=0)bg.pops.splice(q,1);}
+  updateParticles(dt);
+  updateBrickHUD();
+}
+function drawClassic(){
+  var ctx=bctx;ctx.clearRect(0,0,BW,BH);
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  for(var i=0;i<bg.bricks.length;i++){
+    var b=bg.bricks[i];if(!b.alive)continue;
+    roundRect(ctx,b.x,b.y,b.w,b.h,5);ctx.fillStyle=b.color;ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.3)';roundRect(ctx,b.x,b.y,b.w,b.h*0.42,5);ctx.fill();
+    ctx.fillStyle='#1a2b6b';ctx.font='bold 13px "Noto Sans KR",sans-serif';
+    ctx.fillText(b.ch,b.x+b.w/2,b.y+b.h/2+1);
+  }
+  // 글자 팝업
+  for(var q=0;q<bg.pops.length;q++){var pp=bg.pops[q];
+    ctx.globalAlpha=Math.max(0,pp.life/0.7);ctx.fillStyle='#ffd54a';
+    ctx.font='bold 20px "Noto Sans KR",sans-serif';ctx.fillText(pp.ch,pp.x,pp.y);ctx.globalAlpha=1;}
+  drawParticles(ctx);
+  // 막대
+  var pd=bg.paddle;roundRect(ctx,pd.x-pd.w/2,pd.y-pd.h/2,pd.w,pd.h,7);
+  ctx.fillStyle='#ffd54a';ctx.fill();ctx.strokeStyle='#c79b15';ctx.lineWidth=2;ctx.stroke();
+  // 공
+  var ba=bg.ball;ctx.beginPath();ctx.arc(ba.x,ba.y,ba.r,0,7);ctx.fillStyle='#fff';ctx.fill();
+  ctx.strokeStyle='#cfe3ff';ctx.lineWidth=2;ctx.stroke();
+  if(!ba.launched){ctx.fillStyle='#fff';ctx.font='bold 14px "Noto Sans KR",sans-serif';
+    ctx.fillText('스페이스 / 클릭으로 발사!',BW/2,BH/2);}
+}
+
+// ---------- 공통 유틸 (파티클 / 둥근사각형) ----------
+function spawnBrickParticles(x,y,color){
+  for(var i=0;i<8;i++){var a=Math.random()*7,s=60+Math.random()*120;
+    bg.particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:0.5,color:color});}
+}
+function updateParticles(dt){
+  for(var i=bg.particles.length-1;i>=0;i--){var p=bg.particles[i];
+    p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=300*dt;p.life-=dt;if(p.life<=0)bg.particles.splice(i,1);}
+}
+function drawParticles(ctx){
+  for(var i=0;i<bg.particles.length;i++){var p=bg.particles[i];
+    ctx.globalAlpha=Math.max(0,p.life*2);ctx.fillStyle=p.color;
+    ctx.fillRect(p.x-2,p.y-2,4,4);}
+  ctx.globalAlpha=1;
+}
+function roundRect(ctx,x,y,w,h,r){
+  ctx.beginPath();ctx.moveTo(x+r,y);ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);ctx.arcTo(x,y+h,x,y,r);ctx.arcTo(x,y,x+w,y,r);ctx.closePath();
+}
+
+// ---------- 입력 / 조작 연결 ----------
+function wireBrickControls(){
+  // 타이핑 입력
+  var bi=gid('brick-input');
+  bi.addEventListener('compositionstart',function(){isComposing=true;});
+  bi.addEventListener('compositionend',function(){isComposing=false;tryFireTyping();});
+  bi.addEventListener('input',function(){if(!isComposing)tryFireTyping();});
+  bi.addEventListener('keydown',function(e){if(e.key==='Enter')tryFireTyping(true);});
+  // 클래식: 마우스/터치
+  function pointerX(clientX){var r=brickCanvas.getBoundingClientRect();return (clientX-r.left)/r.width*BW;}
+  brickCanvas.addEventListener('mousemove',function(e){if(bg&&bg.type==='classic'&&!bg.over)bg.paddle.x=Math.max(bg.paddle.w/2,Math.min(BW-bg.paddle.w/2,pointerX(e.clientX)));});
+  brickCanvas.addEventListener('touchmove',function(e){if(bg&&bg.type==='classic'&&!bg.over){e.preventDefault();bg.paddle.x=Math.max(bg.paddle.w/2,Math.min(BW-bg.paddle.w/2,pointerX(e.touches[0].clientX)));}},{passive:false});
+  brickCanvas.addEventListener('mousedown',function(){if(bg&&bg.type==='classic'&&!bg.over)launchBall();});
+  brickCanvas.addEventListener('touchstart',function(){if(bg&&bg.type==='classic'&&!bg.over)launchBall();});
+  // 키보드 (클래식)
+  document.addEventListener('keydown',function(e){
+    if(!bg||bg.type!=='classic'||!gid('screen-brick').classList.contains('active'))return;
+    if(e.key==='ArrowLeft')bg.left=true;
+    else if(e.key==='ArrowRight')bg.right=true;
+    else if(e.key===' '){e.preventDefault();launchBall();}
+  });
+  document.addEventListener('keyup',function(e){
+    if(!bg||bg.type!=='classic')return;
+    if(e.key==='ArrowLeft')bg.left=false;else if(e.key==='ArrowRight')bg.right=false;
+  });
+}
+function tryFireTyping(){
+  if(!bg||bg.type!=='typing'||bg.over)return;
+  var bi=gid('brick-input');var v=bi.value.replace(/\s+/g,'');
+  if(!v)return;
+  if(fireTyping(v)){bi.value='';bi.className='typing-input state-ok';
+    setTimeout(function(){bi.className='typing-input';},150);}
 }
 
 </script>
