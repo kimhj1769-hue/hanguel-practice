@@ -1748,9 +1748,10 @@ function updateTyping(dt){
   bg.ramp+=dt;
   var speed=bg.descend+bg.ramp*0.22;             // 시간이 갈수록 천천히 빨라짐
   // 벽돌 하강
-  var topY=99999;
+  var topY=99999,aliveCount=0;
   for(var i=0;i<bg.bricks.length;i++){
     var b=bg.bricks[i];if(!b.alive)continue;
+    aliveCount++;
     b.y+=speed*dt;
     if(b.y<topY)topY=b.y;
     if(b.y+b.h>=TLINE){                          // 펭귄 라인 도달
@@ -1758,10 +1759,11 @@ function updateTyping(dt){
       if(bg.lives<=0){updateBrickHUD();brickGameOver('게임 오버 😵');return;}
     }
   }
-  // 새 줄 생성
+  // 새 줄 생성 — 화면의 벽돌 수에 상한선 (초반 적게, 시간 갈수록 증가)
   bg.spawnTimer+=dt*1000;
   var every=Math.max(3000,bg.spawnEvery-bg.ramp*55);
-  if(bg.spawnTimer>=every&&topY>=TPAD+TROWSTEP){bg.spawnTimer=0;spawnTypingRow(TPAD);}
+  var maxAlive=4+Math.floor(bg.ramp/14);          // 시작 4개 → 14초마다 +1
+  if(bg.spawnTimer>=every&&topY>=TPAD+TROWSTEP&&aliveCount<maxAlive){bg.spawnTimer=0;spawnTypingRow(TPAD);}
   // 발사체 이동
   for(var p=bg.projectiles.length-1;p>=0;p--){
     var pr=bg.projectiles[p];var tb=pr.target;
